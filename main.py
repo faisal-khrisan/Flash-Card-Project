@@ -2,7 +2,7 @@ from tkinter import *
 import pandas
 import random
 
-BACKGROUND_COLOR = "#B1DDC6"
+BACKGROUND_COLOR = "white"
 current_card = {}
 to_learn = {}
 
