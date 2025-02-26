@@ -1,87 +1,70 @@
-from glob import translate
 from tkinter import *
-import pandas as pd
+import pandas
 import random
 
-
 BACKGROUND_COLOR = "#B1DDC6"
+current_card = {}
+to_learn = {}
 
-#----------------------------------load the data -------------------------------------------
-
-data = pd.read_csv("data/Malay  - Sheet1.csv")
-
-random_index = random.randint(0,500)
-
-Malay_word = data["Malay"][random_index]
-English_word = data["English"][random_index]
-
-
-def next_word():
-    index = random.randint(0, 500)
-
-    global Malay_word, English_word
-    Malay_word = data["Malay"][index]
-    English_word = data["English"][index]
-    Malay_and_English_label.config(text=Malay_word)
-    Malay_English.config(text="Malay")
+try:
+    data = pandas.read_csv("data/words_to_learn.csv")
+except FileNotFoundError:
+    original_data = pandas.read_csv("data/french_words.csv")
+    print(original_data)
+    to_learn = original_data.to_dict(orient="records")
+else:
+    to_learn = data.to_dict(orient="records")
 
 
-def translated_word():
-    Malay_English.config(text="English")
-    Malay_and_English_label.config(text=English_word.title())
+def next_card():
+    global current_card, flip_timer
+    window.after_cancel(flip_timer)
+    current_card = random.choice(to_learn)
+    canvas.itemconfig(card_title, text="French", fill="black")
+    canvas.itemconfig(card_word, text=current_card["French"], fill="black")
+    canvas.itemconfig(card_background, image=card_front_img)
+    flip_timer = window.after(3000, func=flip_card)
 
 
+def flip_card():
+    canvas.itemconfig(card_title, text="English", fill="white")
+    canvas.itemconfig(card_word, text=current_card["English"], fill="white")
+    canvas.itemconfig(card_background, image=card_back_img)
 
 
+def is_known():
+    to_learn.remove(current_card)
+    print(len(to_learn))
+    data = pandas.DataFrame(to_learn)
+    data.to_csv("data/words_to_learn.csv", index=False)
+    next_card()
 
-#-------------------------------------------------------------------------------------
-#Setting the window
 
 window = Tk()
-window.title("Flash Cards")
-window.geometry("600x800")
-window.maxsize(600, 800)
+window.title("Flashy")
 window.config(padx=50, pady=50, bg=BACKGROUND_COLOR)
 
-#TODO. Setting the image background card
+flip_timer = window.after(3000, func=flip_card)
 
-# Welcoming label
+canvas = Canvas(width=800, height=526)
+card_front_img = PhotoImage(file="images/card_front.png")
+card_back_img = PhotoImage(file="images/card_back.png")
+card_background = canvas.create_image(400, 263, image=card_front_img)
+card_title = canvas.create_text(400, 150, text="", font=("Ariel", 40, "italic"))
+card_word = canvas.create_text(400, 263, text="", font=("Ariel", 60, "bold"))
+canvas.config(bg=BACKGROUND_COLOR, highlightthickness=0)
+canvas.grid(row=0, column=0, columnspan=2)
 
-welcome = Label(text="Welcome to Flash Card", font=("Times New Roman", 20, "bold italic"), bg=BACKGROUND_COLOR)
-welcome.grid(row=0, column=1, columnspan=2)
+cross_image = PhotoImage(file="images/wrong.png")
+unknown_button = Button(image=cross_image, highlightthickness=0, command=next_card)
+unknown_button.grid(row=1, column=0)
 
-# to make space
-label_space1= Label(borderwidth=0,highlightthickness=0,bg=BACKGROUND_COLOR)
-label_space1.grid(row=1,column=0,columnspan=2)
+check_image = PhotoImage(file="images/right.png")
+known_button = Button(image=check_image, highlightthickness=0, command=is_known)
+known_button.grid(row=1, column=1)
 
+next_card()
 
-my_image = PhotoImage(file="images/card_front.png")
-button = Button(image=my_image,borderwidth=0,highlightthickness=0, height=350, width=400,command=translated_word)
-button.grid(column=1, row=2, columnspan=2)
-
-# This is just to make space to the right and move the all content to the middle
-label_space2 = Entry(borderwidth=0,highlightthickness=0,bg=BACKGROUND_COLOR, width=9)
-label_space2.grid(row=2,column=0)
-
-#TODO. check and cancel buttons
-
-# this label for spacing between the cards and buttons
-label = Label(borderwidth=0,highlightthickness=0,bg=BACKGROUND_COLOR)
-label.grid(row=3,column=0,columnspan=2)
-
-right_image = PhotoImage(file="images/right.png")
-right_button = Button(image=right_image,borderwidth=0,highlightthickness=0,height=60, width=60, pady=100,command=next_word)
-right_button.grid(row=4,column=2)
-
-wrong_image = PhotoImage(file="images/wrong.png")
-wrong_button= Button(image=wrong_image,borderwidth=0,highlightthickness=0,height=60, width=60,pady=100,padx=50,command=next_word)
-wrong_button.grid(row=4,column=1)
-
-# labels
-Malay_English = Label(text="Malay", background="white",font=("New times roman","20","italic"))
-Malay_English.place(x=220,y=160)
-Malay_and_English_label = Label(text=Malay_word.title(),background="white",font=("New times roman","30","bold"))
-Malay_and_English_label .grid(columnspan=2, column=1,row=2)
 window.mainloop()
 
 
